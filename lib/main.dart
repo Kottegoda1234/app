@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
         appBar: AppBar(
           title: const Text('My AppBar'),
           centerTitle: true,
-          backgroundColor: Colors.blue,
+          
         ),
         body: const Center(
           child: Text(
