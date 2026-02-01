@@ -28,6 +28,26 @@ class _AppBodyState extends State<AppBody> {
   final TextEditingController rateController = TextEditingController();
   final TextEditingController fixedController = TextEditingController();
 
+  void calculateAndNavigate() {
+    double units = double.tryParse(unitsController.text) ?? 0;
+    double rate = double.tryParse(rateController.text) ?? 0;
+    double fixed = double.tryParse(fixedController.text) ?? 0;
+
+    double total = (units * rate) + fixed;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ResultPage(
+          units: units,
+          rate: rate,
+          fixed: fixed,
+          total: total,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -185,41 +205,24 @@ class _AppBodyState extends State<AppBody> {
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // 🔹 Calculate Bill Card
-                    GestureDetector(
-                      onTap: () {}, // no function yet
-                      child: Container(
-                        padding: const EdgeInsets.all(16),
-                        margin: const EdgeInsets.symmetric(vertical: 8),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 6,
-                              offset: Offset(2, 4),
-                            ),
-                          ],
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: calculateAndNavigate,
+                        icon: const Icon(Icons.calculate, color: Colors.white),
+                        label: const Text(
+                          "Calculate Bill",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(Icons.calculate, color: Colors.white),
-                            SizedBox(width: 10),
-                            Text(
-                              "Calculate Bill",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold),
-                            ),
-                          ],
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.all(14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          backgroundColor: const Color(0xFF0D47A1),
                         ),
                       ),
                     ),
