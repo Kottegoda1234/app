@@ -28,7 +28,7 @@ class ResultPage extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              // 🔹 AppBar-like Header (no back function)
+              // 🔹 AppBar-like Header
               Container(
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -46,10 +46,13 @@ class ResultPage extends StatelessWidget {
                   ],
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.arrow_back, color: Colors.white),
-                    SizedBox(width: 10),
-                    Text(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
                       "Bill Summary",
                       style: TextStyle(
                         color: Colors.white,
@@ -128,9 +131,9 @@ class ResultPage extends StatelessWidget {
                       ),
                       const Divider(height: 30),
 
-                      _infoRow("Units Consumed", 0),
-                      _infoRow("Rate per Unit", 0),
-                      _infoRow("Fixed Charge", 0),
+                      _infoRow("Units Consumed", units),
+                      _infoRow("Rate per Unit", rate),
+                      _infoRow("Fixed Charge", fixed),
 
                       const SizedBox(height: 20),
 
@@ -146,10 +149,10 @@ class ResultPage extends StatelessWidget {
                           ),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Text(
-                          "Total Bill: Rs. 0.00",
+                        child: Text(
+                          "Total Bill: Rs. ${total.toStringAsFixed(2)}",
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -159,7 +162,7 @@ class ResultPage extends StatelessWidget {
 
                       const SizedBox(height: 20),
 
-                      // 🔹 Back Button (no function)
+                      // 🔹 Back Button with Gradient Border
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
@@ -173,7 +176,7 @@ class ResultPage extends StatelessWidget {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: null, // disabled
+                          onPressed: () => Navigator.pop(context),
                           child: const Text(
                             "Back",
                             style: TextStyle(
@@ -195,7 +198,7 @@ class ResultPage extends StatelessWidget {
     );
   }
 
-  // 🔹 Info Row Widget (UI-only, value = 0)
+  // 🔹 Info Row Widget
   Widget _infoRow(String title, double value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -207,7 +210,7 @@ class ResultPage extends StatelessWidget {
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
           Text(
-            "Rs. 0.00",
+            "Rs. ${value.toStringAsFixed(2)}",
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
           ),
         ],
