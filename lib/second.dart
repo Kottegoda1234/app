@@ -28,34 +28,24 @@ class ResultPage extends StatelessWidget {
         child: SafeArea(
           child: Column(
             children: [
-              // 🔹 AppBar-like Header (no back function)
+              // Header with Back Arrow
               Container(
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0D47A1), Color(0xFF1976D2), Color(0xFF64B5F6)],
-                  ),
+                  color: Colors.white.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 6,
-                      offset: Offset(2, 4),
-                    ),
-                  ],
                 ),
                 child: Row(
-                  children: const [
-                    Icon(Icons.arrow_back, color: Colors.white),
-                    SizedBox(width: 10),
-                    Text(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
                       "Bill Summary",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -63,131 +53,46 @@ class ResultPage extends StatelessWidget {
 
               const SizedBox(height: 16),
 
-              // 🔹 Themed Icon (Electricity Meter)
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFA726), Color(0xFFFFEB3B), Color(0xFFFF5722)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black38,
-                      blurRadius: 6,
-                      offset: Offset(2, 4),
-                    ),
-                  ],
-                ),
-                child: const CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.transparent,
-                  child: Icon(
-                    Icons.electrical_services,
-                    color: Colors.white,
-                    size: 50,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // 🔹 Result Card
+              // Summary Card
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Colors.white, Color(0xFFE3F2FD)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 6,
-                        offset: Offset(2, 4),
-                      ),
-                    ],
                   ),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Center(
-                        child: Text(
-                          "Electricity Bill Details ⚡",
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      const Divider(height: 30),
-
-                      _infoRow("Units Consumed", 0),
-                      _infoRow("Rate per Unit", 0),
-                      _infoRow("Fixed Charge", 0),
-
-                      const SizedBox(height: 20),
-
-                      // 🔹 Total Bill Container with Gradient
+                      const Icon(Icons.electrical_services, size: 60, color: Colors.orange),
+                      const Divider(height: 40),
+                      _infoRow("Units Consumed", units),
+                      _infoRow("Rate per Unit", rate),
+                      _infoRow("Fixed Charge", fixed),
+                      const Spacer(),
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF0D47A1), Color(0xFF1976D2), Color(0xFF64B5F6)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: Colors.blue.shade900,
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Text(
-                          "Total Bill: Rs. 0.00",
+                        child: Text(
+                          "Total Bill: Rs. ${total.toStringAsFixed(2)}",
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
                         ),
                       ),
-
                       const SizedBox(height: 20),
-
-                      // 🔹 Back Button (no function)
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(
-                              width: 2,
-                              color: Color(0xFF0D47A1),
-                            ),
-                            padding: const EdgeInsets.all(14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          onPressed: null, // disabled
-                          child: const Text(
-                            "Back",
-                            style: TextStyle(
-                              color: Color(0xFF0D47A1),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
+                      OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text("Back to Calculator"),
                       ),
                     ],
                   ),
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -195,21 +100,14 @@ class ResultPage extends StatelessWidget {
     );
   }
 
-  // 🔹 Info Row Widget (UI-only, value = 0)
   Widget _infoRow(String title, double value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
-          Text(
-            "Rs. 0.00",
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-          ),
+          Text(title, style: const TextStyle(fontSize: 16)),
+          Text("Rs. ${value.toStringAsFixed(2)}", style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         ],
       ),
     );
