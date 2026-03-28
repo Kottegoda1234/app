@@ -1,24 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'second.dart';
 
-void main() {
-  runApp(MaterialApp(home: const Home()));
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://ykjpwcwxbiscvdsoxglx.supabase.co',
+    anonKey: 'sb_publishable_I0htRulKH7DYJZezEmD4wA_OISC61Ci',
+  );
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Home(),
+    );
+  }
 }
 
 class Home extends StatelessWidget {
   const Home({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: AppBody(),
-    );
+    return const Scaffold(body: AppBody());
   }
 }
 
 class AppBody extends StatefulWidget {
   const AppBody({super.key});
-
   @override
   State<AppBody> createState() => _AppBodyState();
 }
@@ -27,210 +40,221 @@ class _AppBodyState extends State<AppBody> {
   final TextEditingController unitsController = TextEditingController();
   final TextEditingController rateController = TextEditingController();
   final TextEditingController fixedController = TextEditingController();
+  final supabase = Supabase.instance.client;
 
-  void calculateAndNavigate() {
-    double units = double.tryParse(unitsController.text) ?? 0;
-    double rate = double.tryParse(rateController.text) ?? 0;
-    double fixed = double.tryParse(fixedController.text) ?? 0;
+  double currentUnits = 0, currentRate = 0, currentFixed = 0, currentTotal = 0;
 
-    double total = (units * rate) + fixed;
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ResultPage(
-          units: units,
-          rate: rate,
-          fixed: fixed,
-          total: total,
-        ),
+  // 🔥 INPUT STYLE
+  InputDecoration inputStyle(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
       ),
     );
+  }
+
+  // CREATE
+  void calculateAndInsert() async {
+    double u = double.tryParse(unitsController.text) ?? 0;
+    double r = double.tryParse(rateController.text) ?? 0;
+    double f = double.tryParse(fixedController.text) ?? 0;
+    double t = (u * r) + f;
+
+    setState(() {
+      currentUnits = u;
+      currentRate = r;
+      currentFixed = f;
+      currentTotal = t;
+    });
+
+    try {
+      await supabase.from('bills').insert({
+        'units': u,
+        'rate': r,
+        'fixed': f,
+        'total': t
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Saved!')),
+        );
+      }
+
+      setState(() {});
+    } catch (e) {
+      debugPrint("Error: $e");
+    }
+  }
+
+  // READ
+  Future<List<Map<String, dynamic>>> fetchBills() async {
+    try {
+      final List<dynamic> data = await supabase
+          .from('bills')
+          .select()
+          .order('id', ascending: false);
+
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      return [];
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF0D47A1), Color(0xFF1976D2), Color(0xFF64B5F6)],
+          colors: [Color(0xFF0D47A1), Color(0xFF64B5F6)],
           begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
         ),
       ),
       child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // 🔹 AppBar-like Header
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF0D47A1), Color(0xFF1976D2), Color(0xFF64B5F6)],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 6,
-                      offset: Offset(2, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: const [
-                    Icon(Icons.flash_on, color: Colors.white),
-                    SizedBox(width: 10),
-                    Text(
-                      "Electricity Bill Calculator",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            const Text(
+              "Electricity Bill Manager",
+              style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 10),
 
-              // 🔹 Themed Icon (Electricity Meter)
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFFFA726), Color(0xFFFFEB3B), Color(0xFFFF5722)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black38,
-                      blurRadius: 6,
-                      offset: Offset(2, 4),
-                    ),
-                  ],
-                ),
-                child: const CircleAvatar(
-                  radius: 40,
-                  backgroundColor: Colors.transparent,
-                  child: Icon(
-                    Icons.electrical_services,
-                    color: Colors.white,
-                    size: 50,
-                  ),
-                ),
-              ),
+            const Icon(
+              Icons.lightbulb_outline,
+              color: Color.fromARGB(255, 252, 192, 29),
+              size: 80,
+            ),
 
-              const SizedBox(height: 24),
+            const SizedBox(height: 10),
 
-              // 🔹 Input Card
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Colors.white, Color(0xFFE3F2FD)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 6,
-                      offset: Offset(2, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: unitsController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Units Consumed",
-                        prefixIcon:
-                            const Icon(Icons.flash_on, color: Color(0xFF0D47A1)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(
-                              color: Color(0xFF0D47A1), width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+            // INPUT CARD
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Card(
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: unitsController,
+                        keyboardType: TextInputType.number,
+                        decoration:
+                            inputStyle("Units", Icons.electric_meter),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: rateController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Rate per Unit",
-                        prefixIcon: const Icon(Icons.currency_rupee,
-                            color: Color(0xFF0D47A1)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(
-                              color: Color(0xFF0D47A1), width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: rateController,
+                        keyboardType: TextInputType.number,
+                        decoration:
+                            inputStyle("Rate", Icons.attach_money),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: fixedController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        labelText: "Fixed Charge",
-                        prefixIcon: const Icon(Icons.receipt_long,
-                            color: Color(0xFF0D47A1)),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide: const BorderSide(
-                              color: Color(0xFF0D47A1), width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      const SizedBox(height: 12),
+
+                      TextField(
+                        controller: fixedController,
+                        keyboardType: TextInputType.number,
+                        decoration:
+                            inputStyle("Fixed Charge", Icons.receipt_long),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: calculateAndNavigate,
-                        icon: const Icon(Icons.calculate, color: Colors.white),
-                        label: const Text(
-                          "Calculate Bill",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.all(14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+
+                      const SizedBox(height: 15),
+
+                      // BUTTONS
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: calculateAndInsert,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    const Color.fromARGB(255, 7, 172, 255),
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text("Save"),
+                            ),
                           ),
-                          backgroundColor: const Color(0xFF0D47A1),
-                        ),
-                      ),
-                    ),
-                  ],
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (c) => ResultPage(
+                                    units: currentUnits,
+                                    rate: currentRate,
+                                    fixed: currentFixed,
+                                    total: currentTotal,
+                                  ),
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber,
+                                foregroundColor: Colors.white,
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                      BorderRadius.circular(12),
+                                ),
+                              ),
+                              child: const Text("View"),
+                            ),
+                          ),
+                        ],
+                      )
+                    ],
+                  ),
                 ),
               ),
-            ],
-          ),
+            ),
+
+            // LIST (ONLY VIEW - NO EDIT/DELETE)
+            Expanded(
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: fetchBills(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(
+                        child: CircularProgressIndicator());
+                  }
+
+                  return ListView.builder(
+                    itemCount: snapshot.data!.length,
+                    itemBuilder: (context, i) {
+                      final b = snapshot.data![i];
+                      return Card(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        child: ListTile(
+                          title: Text("Total: Rs. ${b['total']}"),
+                          subtitle: Text(
+                              "U: ${b['units']} | R: ${b['rate']}"),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            )
+          ],
         ),
       ),
     );
