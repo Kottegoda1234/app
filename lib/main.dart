@@ -1,37 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'second.dart';
+import 'second.dart'; 
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
   await Supabase.initialize(
     url: 'https://ykjpwcwxbiscvdsoxglx.supabase.co',
     anonKey: 'sb_publishable_I0htRulKH7DYJZezEmD4wA_OISC61Ci',
   );
+  
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Home(),
+      theme: ThemeData(useMaterial3: true),
+      home: const Home(),
     );
   }
 }
 
 class Home extends StatelessWidget {
   const Home({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: AppBody());
+    return const Scaffold(
+      // Moved background to Scaffold for better UI management
+      body: AppBody(),
+    );
   }
 }
 
 class AppBody extends StatefulWidget {
   const AppBody({super.key});
+
   @override
   State<AppBody> createState() => _AppBodyState();
 }
@@ -40,11 +50,12 @@ class _AppBodyState extends State<AppBody> {
   final TextEditingController unitsController = TextEditingController();
   final TextEditingController rateController = TextEditingController();
   final TextEditingController fixedController = TextEditingController();
-  final supabase = Supabase.instance.client;
+  
+  // Use a getter for the client to ensure it's always ready
+  SupabaseClient get supabase => Supabase.instance.client;
 
   double currentUnits = 0, currentRate = 0, currentFixed = 0, currentTotal = 0;
 
-  // 🔥 INPUT STYLE
   InputDecoration inputStyle(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -57,165 +68,166 @@ class _AppBodyState extends State<AppBody> {
     );
   }
 
-  // CREATE
+  // -----------------------------CREATE---------------------------------
   void calculateAndInsert() async {
     double u = double.tryParse(unitsController.text) ?? 0;
     double r = double.tryParse(rateController.text) ?? 0;
     double f = double.tryParse(fixedController.text) ?? 0;
     double t = (u * r) + f;
 
-    setState(() {
-      currentUnits = u;
-      currentRate = r;
-      currentFixed = f;
-      currentTotal = t;
-    });
-
     try {
       await supabase.from('bills').insert({
         'units': u,
         'rate': r,
         'fixed': f,
-        'total': t
+        'total': t,
       });
 
       if (mounted) {
+        setState(() {
+          currentUnits = u;
+          currentRate = r;
+          currentFixed = f;
+          currentTotal = t;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Saved!')),
+          const SnackBar(content: Text('Saved Successfully!')),
         );
+        // Clear fields after save
+        unitsController.clear();
+        rateController.clear();
+        fixedController.clear();
       }
-
-      setState(() {});
     } catch (e) {
-      debugPrint("Error: $e");
+      debugPrint("Error inserting: $e");
     }
   }
 
-  // READ
+  //----------------------------------- READ------------------------------------
   Future<List<Map<String, dynamic>>> fetchBills() async {
     try {
-      final List<dynamic> data = await supabase
+      final data = await supabase
           .from('bills')
           .select()
           .order('id', ascending: false);
-
       return List<Map<String, dynamic>>.from(data);
     } catch (e) {
+      debugPrint("Fetch error: $e");
       return [];
+    }
+  }
+
+  //-------------------------------------- UPDATE---
+  void showUpdateDialog(Map<String, dynamic> bill) {
+    final uEdit = TextEditingController(text: bill['units'].toString());
+    final rEdit = TextEditingController(text: bill['rate'].toString());
+    final fEdit = TextEditingController(text: bill['fixed'].toString());
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Edit Bill"),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: uEdit, keyboardType: TextInputType.number, decoration: inputStyle("Units", Icons.electric_meter)),
+              const SizedBox(height: 12),
+              TextField(controller: rEdit, keyboardType: TextInputType.number, decoration: inputStyle("Rate", Icons.attach_money)),
+              const SizedBox(height: 12),
+              TextField(controller: fEdit, keyboardType: TextInputType.number, decoration: inputStyle("Fixed Charge", Icons.receipt_long)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () async {
+              double u = double.tryParse(uEdit.text) ?? 0;
+              double r = double.tryParse(rEdit.text) ?? 0;
+              double f = double.tryParse(fEdit.text) ?? 0;
+              double t = (u * r) + f;
+
+              await supabase.from('bills').update({
+                'units': u, 'rate': r, 'fixed': f, 'total': t
+              }).eq('id', bill['id']);
+
+              if (mounted) {
+                Navigator.pop(context);
+                setState(() {});
+              }
+            },
+            child: const Text("Update"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  //---------------------------------- DELETE---------------------------------------
+  void deleteBill(int id) async {
+    try {
+      await supabase.from('bills').delete().eq('id', id);
+      setState(() {});
+    } catch (e) {
+      debugPrint("Delete error: $e");
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF0D47A1), Color(0xFF64B5F6)],
           begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
         ),
       ),
       child: SafeArea(
         child: Column(
           children: [
             const SizedBox(height: 20),
-            const Text(
-              "Electricity Bill Manager",
-              style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold),
-            ),
-
-            const SizedBox(height: 10),
-
-            const Icon(
-              Icons.lightbulb_outline,
-              color: Color.fromARGB(255, 252, 192, 29),
-              size: 80,
-            ),
-
-            const SizedBox(height: 10),
-
-            // INPUT CARD
+            const Text("Electricity Bill Manager",
+                style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+            const Icon(Icons.lightbulb, color: Colors.amber, size: 60),
+            
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Card(
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                 child: Padding(
-                  padding: const EdgeInsets.all(12.0),
+                  padding: const EdgeInsets.all(16.0),
                   child: Column(
                     children: [
-                      TextField(
-                        controller: unitsController,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            inputStyle("Units", Icons.electric_meter),
-                      ),
+                      TextField(controller: unitsController, keyboardType: TextInputType.number, decoration: inputStyle("Units", Icons.electric_meter)),
                       const SizedBox(height: 12),
-
-                      TextField(
-                        controller: rateController,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            inputStyle("Rate", Icons.attach_money),
-                      ),
+                      TextField(controller: rateController, keyboardType: TextInputType.number, decoration: inputStyle("Rate", Icons.attach_money)),
                       const SizedBox(height: 12),
-
-                      TextField(
-                        controller: fixedController,
-                        keyboardType: TextInputType.number,
-                        decoration:
-                            inputStyle("Fixed Charge", Icons.receipt_long),
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      // BUTTONS
+                      TextField(controller: fixedController, keyboardType: TextInputType.number, decoration: inputStyle("Fixed Charge", Icons.receipt_long)),
+                      const SizedBox(height: 20),
                       Row(
                         children: [
                           Expanded(
                             child: ElevatedButton(
                               onPressed: calculateAndInsert,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    const Color.fromARGB(255, 7, 172, 255),
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(12),
-                                ),
-                              ),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
                               child: const Text("Save"),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(
-                                  builder: (c) => ResultPage(
-                                    units: currentUnits,
-                                    rate: currentRate,
-                                    fixed: currentFixed,
-                                    total: currentTotal,
-                                  ),
-                                ),
+                                MaterialPageRoute(builder: (c) => ResultPage(
+                                  units: currentUnits, rate: currentRate, fixed: currentFixed, total: currentTotal,
+                                )),
                               ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.amber,
-                                foregroundColor: Colors.white,
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                      BorderRadius.circular(12),
-                                ),
-                              ),
-                              child: const Text("View"),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.amber.shade700, foregroundColor: Colors.white),
+                              child: const Text("View Last"),
                             ),
                           ),
                         ],
@@ -226,34 +238,40 @@ class _AppBodyState extends State<AppBody> {
               ),
             ),
 
-            // LIST (ONLY VIEW - NO EDIT/DELETE)
             Expanded(
               child: FutureBuilder<List<Map<String, dynamic>>>(
                 future: fetchBills(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(
-                        child: CircularProgressIndicator());
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: Colors.white));
                   }
-
+                  final bills = snapshot.data ?? [];
+                  if (bills.isEmpty) {
+                    return const Center(child: Text("No bills found.", style: TextStyle(color: Colors.white)));
+                  }
                   return ListView.builder(
-                    itemCount: snapshot.data!.length,
+                    itemCount: bills.length,
                     itemBuilder: (context, i) {
-                      final b = snapshot.data![i];
+                      final b = bills[i];
                       return Card(
-                        margin: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
+                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                         child: ListTile(
-                          title: Text("Total: Rs. ${b['total']}"),
-                          subtitle: Text(
-                              "U: ${b['units']} | R: ${b['rate']}"),
+                          title: Text("Total: Rs. ${b['total']}", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          subtitle: Text("U: ${b['units']} | R: ${b['rate']} | F: ${b['fixed']}"),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(icon: const Icon(Icons.edit, color: Colors.blue), onPressed: () => showUpdateDialog(b)),
+                              IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => deleteBill(b['id'])),
+                            ],
+                          ),
                         ),
                       );
                     },
                   );
                 },
               ),
-            )
+            ),
           ],
         ),
       ),
